@@ -5,8 +5,20 @@ const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
 // Service pour générer des requêtes de recherche
-const generateSearchQueries = async (userQuery) => {
+const generateSearchQueries = async (userQuery, feedback = '') => {
   try {
+    // Construction du message selon qu'il y a un feedback ou non
+    let systemMessage = 'You are an expert research assistant. Given a user\'s query, generate up to four distinct, precise search queries that would help gather comprehensive information on the topic. IMPORTANT: Return ONLY a valid JSON array of strings without any explanation, markdown formatting, or additional text. The response should be EXACTLY in this format: ["query1", "query2", "query3", "query4"]';
+    
+    let userMessage = `User Query: ${userQuery}`;
+    
+    // Si un feedback est fourni, l'ajouter à la requête
+    if (feedback && feedback.trim()) {
+      systemMessage = 'You are an expert research assistant. Given a user\'s query and feedback about previous queries, generate up to four NEW and IMPROVED search queries taking into account the user\'s feedback. IMPORTANT: Return ONLY a valid JSON array of strings without any explanation, markdown formatting, or additional text. The response should be EXACTLY in this format: ["query1", "query2", "query3", "query4"]';
+      
+      userMessage = `User Query: ${userQuery}\n\nFeedback on previous queries: ${feedback}`;
+    }
+    
     const response = await axios.post(
       OPENROUTER_API_URL,
       {
@@ -14,11 +26,11 @@ const generateSearchQueries = async (userQuery) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert research assistant. Given a user\'s query, generate up to four distinct, precise search queries that would help gather comprehensive information on the topic. IMPORTANT: Return ONLY a valid JSON array of strings without any explanation, markdown formatting, or additional text. The response should be EXACTLY in this format: ["query1", "query2", "query3", "query4"]'
+            content: systemMessage
           },
           {
             role: 'user',
-            content: `User Query: ${userQuery}`
+            content: userMessage
           }
         ]
       },
@@ -46,25 +58,26 @@ const generateSearchQueries = async (userQuery) => {
   }
 };
 
-// Service pour extraire le contenu pertinent
-const extractRelevantContext = async (webContents, queries, originalQuery) => {
+// Service pour extraire le contexte pertinent
+const extractRelevantContext = async (websiteContents, userQuery) => {
   try {
+    // Préparer les données à envoyer
+    const mergedContent = websiteContents.map(item => 
+      `SOURCE: ${item.title} (${item.url})\n${item.content}\n\n`
+    ).join('');
+    
     const response = await axios.post(
       OPENROUTER_API_URL,
       {
-        model: 'google/gemini-2.0-pro-exp-02-05:free',
+        model: 'google/gemini-2.0-pro-001',
         messages: [
           {
             role: 'system',
-            content: `Tu es un expert en extraction d'informations. À partir de la requête de l'utilisateur, de la requête de recherche ayant conduit à cette page, et du contenu de la page web, identifie et extrais toutes les informations pertinentes pour répondre à la requête. Retourne uniquement le contexte utile sous forme de texte brut, sans aucun commentaire additionnel.`
+            content: 'You are an expert research assistant. Extract and organize the most relevant information from the provided web content that answers the user\'s original query. Focus on factual information, key points, and comprehensive coverage of the topic. Include relevant details but remain concise.'
           },
           {
             role: 'user',
-            content: `User Queries: ${queries.join(', ')}
-Webpage Contents: 
-"""
-${webContents}
-"""`
+            content: `Original Query: ${userQuery}\n\nWeb Content:\n${mergedContent}\n\nExtract and organize the most relevant information that helps answer the original query.`
           }
         ]
       },
@@ -78,77 +91,26 @@ ${webContents}
 
     return response.data.choices[0].message.content;
   } catch (error) {
-    console.error('Erreur OpenRouter:', error);
-    throw new Error('Erreur lors de l\'extraction du contexte');
+    console.error('Erreur OpenRouter pour l\'extraction du contexte:', error);
+    throw new Error('Erreur lors de l\'extraction du contexte pertinent');
   }
 };
 
 // Service pour générer le rapport final
-const generateReport = async (extractedContent, originalQuery) => {
+const generateReport = async (extractedContent, userQuery) => {
   try {
     const response = await axios.post(
       OPENROUTER_API_URL,
       {
-        model: 'google/gemini-2.0-pro-exp-02-05:free',
+        model: 'google/gemini-2.0-pro-001',
         messages: [
           {
             role: 'system',
-            content: `INSTRUCTION CRITIQUE: Tu DOIS absolument générer ta réponse UNIQUEMENT EN FRANÇAIS, jamais en anglais.
-
-Tu es un expert en recherche et rédaction de rapports. Ta mission est de générer un rapport TRÈS DÉTAILLÉ et approfondi en français. Le rapport doit faire au moins 1500 mots et contenir plusieurs sections avec analyses précises.
-
-CONSIGNES OBLIGATOIRES:
-1. Écris UNIQUEMENT en français
-2. Ton rapport doit être extrêmement détaillé (minimum 1500 mots)
-3. Inclus au moins 4-5 sous-sections dans chaque partie principale
-4. Développe chaque point avec exemples et explications approfondies
-5. Ne synthétise pas trop l'information - préfère l'exhaustivité
-
-Structure à suivre en Markdown:
-
-# Rapport de Recherche: [Requête de l'Utilisateur]
-
-## Résumé Exécutif
-[Résumé détaillé du contenu - minimum 200 mots]
-
-## Contexte et Méthodologie
-[Explication détaillée du contexte et de l'approche - minimum 200 mots]
-
-## Principales Découvertes
-### Découverte 1
-[Explication détaillée et analyse approfondie - minimum 150 mots]
-
-### Découverte 2
-[Explication détaillée et analyse approfondie - minimum 150 mots]
-
-### Découverte 3
-[Explication détaillée et analyse approfondie - minimum 150 mots]
-
-## Analyse Détaillée
-### Aspect 1
-[Analyse très approfondie avec exemples et implications - minimum 200 mots]
-_Source:_ [Nom de la Source](URL)
-
-### Aspect 2
-[Analyse très approfondie avec exemples et implications - minimum 200 mots]
-_Source:_ [Autre Source](URL)
-
-## Implications et Recommandations
-[Analyse des conséquences et suggestions concrètes - minimum 200 mots]
-
-## Conclusion
-[Synthèse complète et perspectives - minimum 150 mots]
-
-REMINDER: Ton rapport DOIT être en français et très détaillé (minimum 1500 mots).`
+            content: 'You are an expert research assistant. Generate a comprehensive, well-structured research report based on the provided information. The report should thoroughly answer the original query with proper sections, citations, and a professional tone. Use markdown for formatting.'
           },
           {
             role: 'user',
-            content: `Requête originale de l'utilisateur: ${originalQuery}
-
-Contextes extraits (fusionnés):
-"""
-${extractedContent}
-"""`
+            content: `Original Query: ${userQuery}\n\nExtracted Information:\n${extractedContent}\n\nGenerate a comprehensive research report with proper sections, citations of the sources mentioned in the extracted information, and a professional academic tone. Use markdown for formatting.`
           }
         ]
       },
@@ -162,8 +124,8 @@ ${extractedContent}
 
     return response.data.choices[0].message.content;
   } catch (error) {
-    console.error('Erreur OpenRouter:', error);
-    throw new Error('Erreur lors de la génération du rapport');
+    console.error('Erreur OpenRouter pour la génération du rapport:', error);
+    throw new Error('Erreur lors de la génération du rapport final');
   }
 };
 

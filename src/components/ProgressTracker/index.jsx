@@ -8,6 +8,7 @@ const ProgressTracker = () => {
 
   const steps = [
     { id: STEPS.GENERATING_QUERIES, label: 'Génération des requêtes' },
+    { id: STEPS.VALIDATE_QUERIES, label: 'Validation des requêtes' },
     { id: STEPS.SEARCHING, label: 'Recherche web' },
     { id: STEPS.ANALYZING, label: 'Analyse du contenu' },
     { id: STEPS.GENERATING_REPORT, label: 'Rédaction du rapport' },

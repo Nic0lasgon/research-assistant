@@ -10,9 +10,12 @@ const api = axios.create({
 });
 
 // Génère des requêtes de recherche à partir de la requête utilisateur
-export const generateSearchQueries = async (userQuery) => {
+export const generateSearchQueries = async (userQuery, feedback = '') => {
   try {
-    const response = await api.post('/generate-queries', { query: userQuery });
+    const response = await api.post('/generate-queries', { 
+      query: userQuery,
+      feedback
+    });
     return response.data.queries;
   } catch (error) {
     console.error('Erreur lors de la génération des requêtes:', error);
@@ -21,9 +24,12 @@ export const generateSearchQueries = async (userQuery) => {
 };
 
 // Effectue des recherches web pour les requêtes générées
-export const performSearch = async (queries) => {
+export const performSearch = async (queries, depth = 3) => {
   try {
-    const response = await api.post('/search', { queries });
+    const response = await api.post('/search', { 
+      queries,
+      depth 
+    });
     return response.data.results;
   } catch (error) {
     console.error('Erreur lors de la recherche:', error);

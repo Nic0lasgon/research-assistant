@@ -36,12 +36,26 @@ const StepDetails = () => {
           </div>
         );
       
+      case STEPS.VALIDATE_QUERIES:
+        return (
+          <div className="step-content">
+            <h3>Validation des requêtes de recherche</h3>
+            <p className="step-description">
+              Sélectionnez les requêtes les plus pertinentes pour votre recherche et ajustez la profondeur d'analyse.
+              Cette étape vous permet de personnaliser et d'optimiser le processus de recherche.
+            </p>
+            <p className="step-note">
+              Utilisez le formulaire ci-dessous pour sélectionner les requêtes à utiliser et définir la profondeur de recherche.
+            </p>
+          </div>
+        );
+      
       case STEPS.SEARCHING:
         return (
           <div className="step-content">
             <h3>Recherche d'informations pertinentes</h3>
             <p className="step-description">
-              Exploration du web à partir des requêtes générées pour trouver les sources les plus pertinentes et fiables.
+              Exploration du web à partir des requêtes validées pour trouver les sources les plus pertinentes et fiables.
             </p>
             
             {searchQueries.length > 0 && (
@@ -67,24 +81,24 @@ const StepDetails = () => {
       case STEPS.ANALYZING:
         return (
           <div className="step-content">
-            <h3>Analyse approfondie du contenu</h3>
+            <h3>Analyse et extraction du contenu</h3>
             <p className="step-description">
-              L'IA lit et analyse en profondeur les pages web trouvées pour en extraire les informations essentielles.
+              L'IA analyse le contenu des sources trouvées pour extraire les informations pertinentes et construire une base de connaissances sur votre sujet.
             </p>
             
             {searchResults.length > 0 && (
-              <div className="results-container">
+              <div className="results-preview">
                 <h4>Sources en cours d'analyse :</h4>
-                <ul className="results-list">
+                <ul className="source-list">
                   {searchResults.slice(0, 5).map((result, index) => (
-                    <li key={index} className="result-item">
-                      <div className="result-title">{result.title}</div>
-                      <div className="result-url">{result.url}</div>
+                    <li key={index} className="source-item">
+                      <div className="source-title">{result.title}</div>
+                      <div className="source-url">{result.link}</div>
                     </li>
                   ))}
                   {searchResults.length > 5 && (
-                    <li className="result-item more-results">
-                      <div className="result-title">+ {searchResults.length - 5} autres sources</div>
+                    <li className="source-more">
+                      +{searchResults.length - 5} autres sources
                     </li>
                   )}
                 </ul>
@@ -92,7 +106,7 @@ const StepDetails = () => {
             )}
             
             <div className="step-animation">
-              <div className="analyzing-animation"></div>
+              <div className="analyze-animation"></div>
             </div>
           </div>
         );
@@ -100,36 +114,37 @@ const StepDetails = () => {
       case STEPS.GENERATING_REPORT:
         return (
           <div className="step-content">
-            <h3>Rédaction du rapport détaillé</h3>
+            <h3>Génération du rapport de recherche</h3>
             <p className="step-description">
-              L'IA synthétise toutes les informations recueillies pour créer un rapport complet, structuré et détaillé.
+              Synthèse des informations analysées et rédaction d'un rapport structuré et complet sur votre sujet.
             </p>
             
             {extractedContent && (
-              <div className="content-preview">
-                <h4>Aperçu des informations collectées :</h4>
-                <div className="content-sample">
+              <div className="content-sample">
+                <h4>Extrait des informations analysées :</h4>
+                <p className="sample-text">
                   {extractedContent.substring(0, 200)}...
-                </div>
+                </p>
               </div>
             )}
             
             <div className="step-animation">
-              <div className="writing-animation">
-                <span className="typewriter"></span>
-              </div>
+              <div className="writing-animation"></div>
             </div>
           </div>
         );
       
       case STEPS.COMPLETE:
         return (
-          <div className="step-content step-complete">
-            <h3>Recherche terminée avec succès</h3>
+          <div className="step-content">
+            <h3>Recherche terminée</h3>
             <p className="step-description">
-              Votre rapport détaillé est prêt ! Découvrez une analyse approfondie de "{query}".
+              Votre rapport de recherche est prêt. Vous pouvez le consulter ci-dessous et l'utiliser pour vos besoins.
             </p>
-            <div className="completion-icon">✓</div>
+            <div className="completion-message">
+              <i className="check-icon">✓</i>
+              <p>Analyse complète de "{query}"</p>
+            </div>
           </div>
         );
       

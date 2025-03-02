@@ -4,6 +4,7 @@ import ProgressTracker from './components/ProgressTracker';
 import StepDetails from './components/StepDetails';
 import SearchStats from './components/SearchStats';
 import ResearchReport from './components/ResearchReport';
+import QueryValidator from './components/QueryValidator';
 import './App.css';
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
           <SearchForm />
           <ProgressTracker />
           <StepDetails />
+          <QueryValidator />
           <SearchStats />
           <ResearchReport />
         </div>

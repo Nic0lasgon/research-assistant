@@ -6,7 +6,7 @@ const jinaAiService = require('../services/jinaAiService');
 // Contrôleur pour générer des requêtes de recherche
 exports.generateQueries = async (req, res, next) => {
   try {
-    const { query } = req.body;
+    const { query, feedback } = req.body;
     if (!query) {
       return res.status(400).json({
         success: false,
@@ -14,7 +14,7 @@ exports.generateQueries = async (req, res, next) => {
       });
     }
 
-    const queries = await openRouterService.generateSearchQueries(query);
+    const queries = await openRouterService.generateSearchQueries(query, feedback);
     res.json({
       success: true,
       queries
@@ -27,7 +27,7 @@ exports.generateQueries = async (req, res, next) => {
 // Contrôleur pour effectuer des recherches
 exports.search = async (req, res, next) => {
   try {
-    const { queries } = req.body;
+    const { queries, depth = 3 } = req.body;
     if (!queries || !Array.isArray(queries)) {
       return res.status(400).json({
         success: false,
@@ -35,7 +35,7 @@ exports.search = async (req, res, next) => {
       });
     }
 
-    const results = await serpApiService.performSearch(queries);
+    const results = await serpApiService.performSearch(queries, depth);
     res.json({
       success: true,
       results
@@ -56,31 +56,20 @@ exports.analyzeContent = async (req, res, next) => {
       });
     }
 
-    // Extraire le contenu des pages web pour chaque URL
+    // Récupérer le contenu de chaque URL
     const contentPromises = results.map(async (result) => {
       const content = await jinaAiService.extractWebContent(result.url);
       return {
-        url: result.url,
         title: result.title,
+        url: result.url,
         content
       };
     });
 
-    // Attendre que toutes les extractions soient terminées
-    const webContents = await Promise.all(contentPromises);
+    const websiteContents = await Promise.all(contentPromises);
     
-    // Fusionner tous les contenus pour les traiter ensemble
-    const mergedContent = webContents.map(item => 
-      `SOURCE: ${item.title} (${item.url})\n${item.content}\n\n`
-    ).join('');
-
     // Extraire le contexte pertinent
-    const queries = results.map(result => result.title);
-    const extractedContent = await openRouterService.extractRelevantContext(
-      mergedContent,
-      queries,
-      originalQuery
-    );
+    const extractedContent = await openRouterService.extractRelevantContext(websiteContents, originalQuery);
 
     res.json({
       success: true,
@@ -91,18 +80,19 @@ exports.analyzeContent = async (req, res, next) => {
   }
 };
 
-// Contrôleur pour générer le rapport
+// Contrôleur pour générer le rapport final
 exports.generateReport = async (req, res, next) => {
   try {
     const { content, query } = req.body;
     if (!content || !query) {
       return res.status(400).json({
         success: false,
-        message: 'Le contenu extrait et la requête sont requis'
+        message: 'Le contenu et la requête sont requis'
       });
     }
 
     const report = await openRouterService.generateReport(content, query);
+    
     res.json({
       success: true,
       report
